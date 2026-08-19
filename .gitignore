@@ -1,0 +1,34 @@
+# Maven build output
+/target/
+
+# IDEs
+.idea/
+.vscode/
+*.iml
+*.ipr
+*.iws
+
+# Eclipse / STS
+.project
+.classpath
+.settings/
+.factorypath
+
+# Operating system files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+logs/
+
+# Spring Boot / local runtime
+*.h2.db
+*.mv.db
+*.trace.db
+.env
+.env.*
+
+# Temporary files
+*.tmp
+*.swp
