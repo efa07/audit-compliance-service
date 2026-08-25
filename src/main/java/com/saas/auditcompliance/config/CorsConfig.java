@@ -1,4 +1,4 @@
- package com.saas.budgetmanagement.config;
+ package com.saas.auditcompliance.config;
 
  import org.springframework.context.annotation.Configuration;
 import org.springframework.lang.NonNull;

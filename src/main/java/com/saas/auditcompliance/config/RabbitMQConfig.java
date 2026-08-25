@@ -1,4 +1,4 @@
-package com.saas.budgetmanagement.config;
+package com.saas.auditcompliance.config;
 
 import com.fasterxml.jackson.databind.ObjectMapper;
 import lombok.RequiredArgsConstructor;
