@@ -36,36 +36,40 @@ import java.util.UUID;
 public class AuditRecord extends Base {
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private SourceService sourceService;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String sourceEventId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String eventType;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime occurredAt;
 
+    @Column(updatable = false)
     private String correlationId;
 
+    @Column(updatable = false)
     private UUID actorId;
 
+    @Column(updatable = false)
     private String entityType;
 
+    @Column(updatable = false)
     private String entityId;
 
     @Lob
-    @Column(nullable = false, columnDefinition = "TEXT")
+    @Column(nullable = false, updatable = false, columnDefinition = "TEXT")
     private String payload;
 
-    @Column(nullable = false, length = 64)
+    @Column(nullable = false, updatable = false, length = 64)
     private String recordHash;
 
-    @Column(length = 64)
+    @Column(updatable = false, length = 64)
     private String previousRecordHash;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime retainUntil;
 }

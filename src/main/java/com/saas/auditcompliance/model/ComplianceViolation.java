@@ -29,33 +29,36 @@ import java.util.UUID;
 @EqualsAndHashCode(callSuper = true)
 public class ComplianceViolation extends Base {
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private UUID auditRecordId;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private SourceService sourceService;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private ViolationType type;
 
     @Enumerated(EnumType.STRING)
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private ViolationSeverity severity;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String ruleViolated;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private String description;
 
+    @Column(updatable = false)
     private String entityType;
 
+    @Column(updatable = false)
     private String entityId;
 
+    @Column(updatable = false)
     private UUID actorId;
 
-    @Column(nullable = false)
+    @Column(nullable = false, updatable = false)
     private LocalDateTime detectedAt;
 }
