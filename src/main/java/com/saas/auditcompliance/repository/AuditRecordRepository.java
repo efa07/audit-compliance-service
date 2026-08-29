@@ -33,4 +33,7 @@ public interface AuditRecordRepository extends Repository<AuditRecord, UUID> {
 
     Page<AuditRecord> findByTenantIdAndEventTypeInAndCreatedAtBetween(
             UUID tenantId, List<String> eventTypes, LocalDateTime from, LocalDateTime to, Pageable pageable);
+
+    Optional<AuditRecord> findFirstByTenantIdAndEntityTypeAndEntityIdOrderByCreatedAtAsc(
+        UUID tenantId, String entityType, String entityId);
 }

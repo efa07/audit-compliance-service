@@ -7,6 +7,7 @@ import com.saas.auditcompliance.exception.AuditRecordNotFoundException;
 import com.saas.auditcompliance.mapper.AuditRecordMapper;
 import com.saas.auditcompliance.model.AuditRecord;
 import com.saas.auditcompliance.repository.AuditRecordRepository;
+import com.saas.auditcompliance.service.ComplianceMonitoringService;
 import com.saas.auditcompliance.utility.AuditHashChainUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -14,6 +15,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import com.saas.auditcompliance.service.AuditRecordService;
 
 import java.time.LocalDateTime;
 import java.util.List;
@@ -29,6 +31,7 @@ public class AuditRecordServiceImpl implements AuditRecordService {
     private final AuditRecordRepository auditRecordRepository;
     private final AuditHashChainUtil hashChainUtil;
     private final AuditRecordMapper auditRecordMapper;
+    private final ComplianceMonitoringService complianceMonitoringService;
 
     @Override
     @Transactional
@@ -63,7 +66,24 @@ public class AuditRecordServiceImpl implements AuditRecordService {
         record.setPreviousRecordHash(chainLink.previousRecordHash());
         record.setRetainUntil(LocalDateTime.now().plusYears(RETENTION_YEARS));
 
-        auditRecordRepository.save(record);
+        AuditRecord saved = auditRecordRepository.save(record);
+
+        evaluateComplianceSafely(saved);
+    }
+
+    /**
+     * Compliance evaluation must never be able to roll back or block the underlying
+     * audit record save — recording that something happened must always succeed,
+     * even if judging it fails. Any exception here is logged and swallowed, not rethrown.
+     */
+    private void evaluateComplianceSafely(AuditRecord record) {
+        try {
+            complianceMonitoringService.evaluate(record);
+        } catch (Exception e) {
+            log.error("Compliance evaluation failed for audit record {} (sourceService={}, sourceEventId={}) — " +
+                    "the audit record itself was saved successfully; only rule evaluation failed.",
+                    record.getId(), record.getSourceService(), record.getSourceEventId(), e);
+        }
     }
 
     @Override
