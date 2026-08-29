@@ -8,6 +8,7 @@ import com.saas.auditcompliance.mapper.AuditRecordMapper;
 import com.saas.auditcompliance.model.AuditRecord;
 import com.saas.auditcompliance.repository.AuditRecordRepository;
 import com.saas.auditcompliance.service.ComplianceMonitoringService;
+import com.saas.auditcompliance.service.IngestionHealthService;
 import com.saas.auditcompliance.utility.AuditHashChainUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -15,8 +16,7 @@ import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
-import com.saas.auditcompliance.service.AuditRecordService;
-
+import com.saas.auditcompliance.service.*;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.UUID;
@@ -32,6 +32,7 @@ public class AuditRecordServiceImpl implements AuditRecordService {
     private final AuditHashChainUtil hashChainUtil;
     private final AuditRecordMapper auditRecordMapper;
     private final ComplianceMonitoringService complianceMonitoringService;
+    private final IngestionHealthService ingestionHealthService;
 
     @Override
     @Transactional
@@ -68,7 +69,24 @@ public class AuditRecordServiceImpl implements AuditRecordService {
 
         AuditRecord saved = auditRecordRepository.save(record);
 
+        recordIngestionHealthSafely(command);
         evaluateComplianceSafely(saved);
+    }
+
+    /**
+     * Same isolation reasoning as evaluateComplianceSafely below — recording that an
+     * event was successfully ingested must never be able to roll back the ingestion
+     * itself, and a failure here must not block compliance evaluation from still running.
+     */
+    private void recordIngestionHealthSafely(AuditEventIngestCommand command) {
+        try {
+            ingestionHealthService.recordEventReceived(
+                    command.getTenantId(), command.getSourceService(), command.getSourceEventId());
+        } catch (Exception e) {
+            log.error("Failed to update ingestion health status for sourceService={}, sourceEventId={} — " +
+                    "the audit record itself was saved successfully; only health tracking failed.",
+                    command.getSourceService(), command.getSourceEventId(), e);
+        }
     }
 
     /**

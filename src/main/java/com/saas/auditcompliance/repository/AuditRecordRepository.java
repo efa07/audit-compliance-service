@@ -36,4 +36,7 @@ public interface AuditRecordRepository extends Repository<AuditRecord, UUID> {
 
     Optional<AuditRecord> findFirstByTenantIdAndEntityTypeAndEntityIdOrderByCreatedAtAsc(
         UUID tenantId, String entityType, String entityId);
+    long countByTenantIdAndRetainUntilBefore(UUID tenantId, LocalDateTime asOf);
+
+   List<AuditRecord> findByTenantIdAndRetainUntilBefore(UUID tenantId, LocalDateTime asOf, Pageable pageable);
 }
