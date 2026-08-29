@@ -8,6 +8,8 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import jakarta.persistence.LockModeType;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
@@ -22,4 +24,7 @@ public interface SourceIngestionStatusRepository extends JpaRepository<SourceIng
             @Param("tenantId") UUID tenantId, @Param("sourceService") SourceService sourceService);
 
     List<SourceIngestionStatus> findByGapSuspectedTrue();
+
+   List<SourceIngestionStatus> findBySourceServiceAndLastEventReceivedAtBeforeAndGapSuspectedFalse(
+        SourceService sourceService, LocalDateTime staleThreshold);
 }
