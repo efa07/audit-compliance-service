@@ -36,49 +36,59 @@ public class AuditEventListener {
         "${audit-compliance.rabbitmq.queues.asset-finance-audit}",
         "${audit-compliance.rabbitmq.queues.financial-reporting-audit}"
     })
+
     public void onAuditableEvent(String messageBody,
-                                  Channel channel,
-                                  @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
-        try {
-            JsonNode envelope = objectMapper.readTree(messageBody);
+                              Channel channel,
+                              @Header(AmqpHeaders.DELIVERY_TAG) long deliveryTag) throws IOException {
+    try {
+        JsonNode envelope = objectMapper.readTree(messageBody);
 
-            String eventType = envelope.path("eventType").asText(null);
-            if (eventType == null) {
-                log.error("Received event with no eventType — cannot route or classify. Rejecting without requeue: {}", messageBody);
-                channel.basicNack(deliveryTag, false, false);
-                return;
-            }
-
-            UUID tenantId = UUID.fromString(envelope.path("tenantId").asText());
-            String sourceEventId = envelope.path("eventId").asText();
-            String correlationId = envelope.path("correlationId").asText(null);
-            LocalDateTime occurredAt = parseOccurredAt(envelope.path("occurredAt").asText(null));
-            JsonNode payloadNode = envelope.path("payload");
-
-            SourceService sourceService = resolveSourceService(eventType);
-
-            AuditEventIngestCommand command = new AuditEventIngestCommand(
-                    tenantId,
-                    sourceService,
-                    sourceEventId,
-                    eventType,
-                    occurredAt,
-                    correlationId,
-                    extractActorId(payloadNode),
-                    extractEntityType(eventType),
-                    extractEntityId(payloadNode),
-                    payloadNode.toString()
-            );
-
-            auditRecordService.ingest(command);
-
-            channel.basicAck(deliveryTag, false);
-
-        } catch (Exception e) {
-            log.error("Failed to ingest auditable event, sending to dead-letter queue: {}", e.getMessage(), e);
+        String eventType = envelope.path("eventType").asText(null);
+        if (eventType == null) {
+            log.error("Received event with no eventType — cannot route or classify. Rejecting without requeue: {}", messageBody);
             channel.basicNack(deliveryTag, false, false);
+            return;
         }
+
+        String occurredAtRaw = envelope.path("occurredAt").asText(null);
+        if (occurredAtRaw == null) {
+            log.error("Received event with no occurredAt — cannot ingest without a real timestamp " +
+                    "(would silently defeat ingestion-gap detection). Rejecting without requeue. eventType={}, body={}",
+                    eventType, messageBody);
+            channel.basicNack(deliveryTag, false, false);
+            return;
+        }
+
+        UUID tenantId = UUID.fromString(envelope.path("tenantId").asText());
+        String sourceEventId = envelope.path("eventId").asText();
+        String correlationId = envelope.path("correlationId").asText(null);
+        LocalDateTime occurredAt = LocalDateTime.parse(occurredAtRaw);
+        JsonNode payloadNode = envelope.path("payload");
+
+        SourceService sourceService = resolveSourceService(eventType);
+
+        AuditEventIngestCommand command = new AuditEventIngestCommand(
+                tenantId,
+                sourceService,
+                sourceEventId,
+                eventType,
+                occurredAt,
+                correlationId,
+                extractActorId(payloadNode),
+                extractEntityType(eventType),
+                extractEntityId(payloadNode),
+                payloadNode.toString()
+        );
+
+        auditRecordService.ingest(command);
+
+        channel.basicAck(deliveryTag, false);
+
+    } catch (Exception e) {
+        log.error("Failed to ingest auditable event, sending to dead-letter queue: {}", e.getMessage(), e);
+        channel.basicNack(deliveryTag, false, false);
     }
+}
 
     private SourceService resolveSourceService(String eventType) {
         String prefix = eventType.contains(".") ? eventType.substring(0, eventType.indexOf('.')) : eventType;
