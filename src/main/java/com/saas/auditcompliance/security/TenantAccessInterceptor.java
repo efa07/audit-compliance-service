@@ -1,6 +1,6 @@
 package com.saas.auditcompliance.security;
 
-import com.saas.budgetmanagement.utility.PermissionUtil;
+import com.saas.auditcompliance.utility.PermissionUtil;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;

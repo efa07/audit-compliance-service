@@ -1,5 +1,5 @@
 package com.saas.auditcompliance.config;
-import com.saas.budgetmanagement.utility.SecurityUtil;
+import com.saas.auditcompliance.utility.SecurityUtil;
 import feign.RequestInterceptor;
 import feign.RequestTemplate;
 import lombok.RequiredArgsConstructor;

@@ -1,9 +1,10 @@
-package com.saas.budgetmanagement.client;
+package com.saas.auditcompliance.client;
 
 import com.saas.auditcompliance.config.FeignClientConfig;
-import com.saas.budgetmanagement.dto.clientDto.AccountingPeriodClientDto;
-import com.saas.budgetmanagement.dto.clientDto.CoaSegmentClientDto;
-import com.saas.budgetmanagement.dto.clientDto.FiscalYearClientDto;
+import com.saas.auditcompliance.dto.clientDto.OrganizationUnitClientDto;
+import com.saas.auditcompliance.dto.clientDto.AccountingPeriodClientDto;
+import com.saas.auditcompliance.dto.clientDto.CoaSegmentClientDto;
+import com.saas.auditcompliance.dto.clientDto.FiscalYearClientDto;
 import org.springframework.cloud.openfeign.FeignClient;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
@@ -34,4 +35,7 @@ public interface FinanceAdministrationClient {
 
     @GetMapping("/api/finance-administration/projects/{tenantId}")
     List<CoaSegmentClientDto> getAllProjects(@PathVariable UUID tenantId);
+
+    @GetMapping("/api/finance-administration/organization-units/{tenantId}")
+    List<OrganizationUnitClientDto> getAllOrganizationUnits(@PathVariable UUID tenantId);
 }
