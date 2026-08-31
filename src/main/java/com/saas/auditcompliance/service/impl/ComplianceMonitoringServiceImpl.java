@@ -1,5 +1,8 @@
 package com.saas.auditcompliance.service.impl;
 
+import com.saas.auditcompliance.dto.requestDto.ComplianceViolationSearchRequest;
+import com.saas.auditcompliance.dto.responseDto.ComplianceViolationResponse;
+import com.saas.auditcompliance.exception.AuditRecordNotFoundException;
 import com.saas.auditcompliance.mapper.ComplianceViolationMapper;
 import com.saas.auditcompliance.model.AuditRecord;
 import com.saas.auditcompliance.model.ComplianceViolation;
@@ -10,12 +13,15 @@ import com.saas.auditcompliance.service.rule.ComplianceCheckResult;
 import com.saas.auditcompliance.service.rule.ComplianceRule;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Propagation;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.UUID;
 
 @Service
 @RequiredArgsConstructor
@@ -47,7 +53,38 @@ public class ComplianceMonitoringServiceImpl implements ComplianceMonitoringServ
         }
     }
 
- 
+    @Override
+    public ComplianceViolationResponse getById(UUID tenantId, UUID id) {
+        ComplianceViolation violation = complianceViolationRepository.findByTenantIdAndId(tenantId, id)
+                .orElseThrow(() -> new AuditRecordNotFoundException("Compliance violation not found: " + id));
+        return complianceViolationMapper.toResponse(violation);
+    }
+
+    @Override
+    public Page<ComplianceViolationResponse> search(UUID tenantId, ComplianceViolationSearchRequest request,
+                                                      Pageable pageable) {
+        Page<ComplianceViolation> violations;
+
+        if (request.getEntityType() != null && request.getEntityId() != null) {
+            violations = complianceViolationRepository.findByTenantIdAndEntityTypeAndEntityId(
+                    tenantId, request.getEntityType(), request.getEntityId(), pageable);
+        } else if (request.getType() != null && request.getSeverity() != null) {
+            violations = complianceViolationRepository.findByTenantIdAndTypeAndSeverity(
+                    tenantId, request.getType(), request.getSeverity(), pageable);
+        } else if (request.getSourceService() != null) {
+            violations = complianceViolationRepository.findByTenantIdAndSourceService(
+                    tenantId, request.getSourceService(), pageable);
+        } else if (request.getActorId() != null) {
+            violations = complianceViolationRepository.findByTenantIdAndActorId(
+                    tenantId, request.getActorId(), pageable);
+        } else {
+            throw new IllegalArgumentException(
+                    "At least one filter (entityType+entityId, type+severity, sourceService, or actorId) is required");
+        }
+
+        return violations.map(complianceViolationMapper::toResponse);
+    }
+
     private void recordViolationSafely(AuditRecord record, ComplianceCheckResult result) {
         try {
             recordViolation(record, result);
