@@ -1,1 +1,26 @@
 package com.saas.auditcompliance.dto.responseDto;
+
+import com.saas.auditcompliance.enums.SourceService;
+import com.saas.auditcompliance.enums.ViolationSeverity;
+import com.saas.auditcompliance.enums.ViolationType;
+import lombok.Data;
+import lombok.EqualsAndHashCode;
+
+import java.time.LocalDateTime;
+import java.util.UUID;
+
+@Data
+@EqualsAndHashCode(callSuper = true)
+public class ComplianceViolationResponse extends BaseResponse {
+
+    private UUID auditRecordId;
+    private SourceService sourceService;
+    private ViolationType type;
+    private ViolationSeverity severity;
+    private String ruleViolated;
+    private String description;
+    private String entityType;
+    private String entityId;
+    private UUID actorId;
+    private LocalDateTime detectedAt;
+}
