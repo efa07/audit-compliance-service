@@ -5,7 +5,7 @@ api-gateway-base-url: ${API_GATEWAY_BASE_URL:http://localhost:8222}
 
 spring:
   application:
-    name: budget-managment-service
+    name: audit-compliance-service
 
   config:
     import: optional:configserver:${CONFIG_SERVER_BASE_URL:http://config-server.default.svc.cluster.local:8888}
@@ -19,7 +19,7 @@ spring:
         format_sql: true
 
   datasource:
-    url: ${DB_URL:jdbc:mysql://localhost:3306/budget_managment_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
+    url: ${DB_URL:jdbc:mysql://localhost:3306/audit_compliance_service?createDatabaseIfNotExist=true&useSSL=false&allowPublicKeyRetrieval=true}
     username: ${DB_USERNAME:root}
     password: ${DB_PASSWORD:root}
     driver-class-name: com.mysql.cj.jdbc.Driver
@@ -42,15 +42,25 @@ rabbitmq:
   delete-resource-queue: delete-demo-resource-queue
   change-resource-status-queue: change-demo-resource-status-queue
 
-budget-management:
+audit-compliance:
   rabbitmq:
     queues:
+      accounts-payable-audit: accounts-payable-audit-queue
       accounts-payable-sync: accounts-payable-sync-queue
-      employee-finance-sync: employee-finance-sync-queue
+      accounts-receivable-audit: accounts-receivable-audit-queue
+      asset-finance-audit: asset-finance-audit-queue
       asset-finance-sync: asset-finance-sync-queue
-      gl-actual-sync: gl-actual-sync-queue
-      finance-admin-sync: finance-admin-sync-queue
+      budget-management-audit: budget-management-audit-queue
+      cash-banking-audit: cash-banking-audit-queue
       cash-banking-sync: cash-banking-sync-queue
+      employee-finance-audit: employee-finance-audit-queue
+      employee-finance-sync: employee-finance-sync-queue
+      finance-admin-audit: finance-admin-audit-queue
+      finance-admin-sync: finance-admin-sync-queue
+      financial-reporting-audit: financial-reporting-audit-queue
+      general-ledger-audit: general-ledger-audit-queue
+      gl-actual-sync: gl-actual-sync-queue
+      org-structure-sync: org-structure-sync-queue
 
 keycloak:
   server-url: http://172.20.136.100:30282
