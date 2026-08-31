@@ -44,6 +44,7 @@ rabbitmq:
 
 audit-compliance:
   rabbitmq:
+    exchange: audit-compliance-exchange
     queues:
       accounts-payable-audit: accounts-payable-audit-queue
       accounts-payable-sync: accounts-payable-sync-queue
