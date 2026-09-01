@@ -1,7 +1,7 @@
 package com.saas.auditcompliance.bootstrap;
 
-import com.saas.auditcompliance.client.TenantRegistryClient;
-import com.saas.auditcompliance.dto.clientDto.TenantClientDto;
+import com.saas.auditcompliance.model.refcache.RefTenant;
+import com.saas.auditcompliance.repository.refcache.RefTenantRepository;
 import com.saas.auditcompliance.service.ReferenceDataSyncService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -18,7 +18,7 @@ import java.util.List;
 public class ReferenceDataBootstrapRunner implements ApplicationRunner {
 
     private final ReferenceDataSyncService referenceDataSyncService;
-    private final TenantRegistryClient tenantRegistryClient;
+    private final RefTenantRepository refTenantRepository;
 
     @Override
     public void run(ApplicationArguments args) {
@@ -33,24 +33,20 @@ public class ReferenceDataBootstrapRunner implements ApplicationRunner {
     }
 
     private void reconcileAllTenants(String trigger) {
-        List<TenantClientDto> tenants;
-        try {
-            tenants = tenantRegistryClient.getActiveTenants();
-        } catch (Exception e) {
-            log.error("Failed to fetch tenant list for reconciliation (trigger={}): {}", trigger, e.getMessage(), e);
+        List<RefTenant> tenants = refTenantRepository.findByActiveTrue();
+
+        if (tenants.isEmpty()) {
+            log.warn("No active tenants found in local RefTenant cache during {} reconciliation — " +
+                    "TenantSyncListener may not have received any events yet.", trigger);
             return;
         }
 
-        for (TenantClientDto tenant : tenants) {
-            if (!tenant.isActive()) {
-                continue;
-            }
+        for (RefTenant tenant : tenants) {
             try {
-                referenceDataSyncService.reconcileAll(tenant.getTenantId());
+                referenceDataSyncService.reconcileAll(tenant.getExternalId());
             } catch (Exception e) {
                 log.error("Reconciliation failed for tenant {} (trigger={}): {}",
-                        tenant.getTenantId(), trigger, e.getMessage(), e);
-                // deliberately continue to the next tenant rather than aborting the whole run
+                        tenant.getExternalId(), trigger, e.getMessage(), e);
             }
         }
     }
