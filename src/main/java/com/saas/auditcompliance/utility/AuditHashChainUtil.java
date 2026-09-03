@@ -19,9 +19,16 @@ public class AuditHashChainUtil {
 
     private final AuditRecordRepository auditRecordRepository;
 
+    /**
+     * Must be called from within the SAME transaction that will save the resulting
+     * AuditRecord. The pessimistic write lock taken here is held until that
+     * transaction commits, which is what actually prevents two concurrent
+     * ingestions for the same (tenantId, sourceService) chain from both reading
+     * the same "latest" record and producing a forked chain.
+     */
     public ChainLink computeNext(UUID tenantId, SourceService sourceService, String canonicalContent) {
         Optional<AuditRecord> previous = auditRecordRepository
-                .findTopByTenantIdAndSourceServiceOrderByCreatedAtDesc(tenantId, sourceService);
+                .findForUpdateLatestByTenantIdAndSourceService(tenantId, sourceService);
 
         String previousHash = previous.map(AuditRecord::getRecordHash).orElse(null);
         String toHash = canonicalContent + "|" + (previousHash != null ? previousHash : "GENESIS");
