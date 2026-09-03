@@ -34,7 +34,7 @@ public class SecurityUtil {
 
     public String getTenantId() {
         String tenantId = getClaim("tenantId");
-        return tenantId != null ? tenantId : "3fa85f64-5717-4562-b3fc-2c963f66afa6";
+        return tenantId != null ? tenantId : "3fa85f64-5717-4562-b3fc-2c963f66afa6"; // remove later in production
     }
 
     public String getName() {
