@@ -7,8 +7,6 @@ import com.saas.auditcompliance.exception.AuditRecordNotFoundException;
 import com.saas.auditcompliance.mapper.AuditRecordMapper;
 import com.saas.auditcompliance.model.AuditRecord;
 import com.saas.auditcompliance.repository.AuditRecordRepository;
-import com.saas.auditcompliance.service.ComplianceMonitoringService;
-import com.saas.auditcompliance.service.IngestionHealthService;
 import com.saas.auditcompliance.utility.AuditHashChainUtil;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +35,7 @@ public class AuditRecordServiceImpl implements AuditRecordService {
     @Override
     @Transactional
     public void ingest(AuditEventIngestCommand command) {
+
         boolean alreadyIngested = auditRecordRepository
                 .findByTenantIdAndSourceServiceAndSourceEventId(
                         command.getTenantId(), command.getSourceService(), command.getSourceEventId())
