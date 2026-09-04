@@ -31,16 +31,6 @@ public class GlobalExceptionHandler {
         return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
     }
 
-    @ExceptionHandler(InvalidBudgetStateException.class)
-    public ResponseEntity<String> handleInvalidBudgetStateException(InvalidBudgetStateException e) {
-        return ResponseEntity.status(HttpStatus.CONFLICT).body(e.getMessage());
-    }
-
-    @ExceptionHandler(InvalidCoaSegmentException.class)
-    public ResponseEntity<String> handleInvalidCoaSegmentException(InvalidCoaSegmentException e) {
-        return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
-    }
-
     @ExceptionHandler(IllegalStateException.class)
     public ResponseEntity<String> handleIllegalStateException(IllegalStateException e) {
         return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(e.getMessage());
