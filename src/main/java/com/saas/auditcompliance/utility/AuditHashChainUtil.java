@@ -1,6 +1,6 @@
 package com.saas.auditcompliance.utility;
 
-import com.saas.auditcompliance.enums.SourceService;
+import com.saas.auditcompliance.dto.common.AuditEventIngestCommand;
 import com.saas.auditcompliance.model.AuditRecord;
 import com.saas.auditcompliance.repository.AuditRecordRepository;
 import lombok.RequiredArgsConstructor;
@@ -11,7 +11,6 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 import java.util.HexFormat;
 import java.util.Optional;
-import java.util.UUID;
 
 @Component
 @RequiredArgsConstructor
@@ -21,19 +20,44 @@ public class AuditHashChainUtil {
 
     /**
      * Must be called from within the SAME transaction that will save the resulting
-     * AuditRecord. The pessimistic write lock taken here is held until that
-     * transaction commits, which is what actually prevents two concurrent
-     * ingestions for the same (tenantId, sourceService) chain from both reading
-     * the same "latest" record and producing a forked chain.
+     * AuditRecord — see the note on AuditRecordRepository.findForUpdateLatestByTenantIdAndSourceService.
      */
-    public ChainLink computeNext(UUID tenantId, SourceService sourceService, String canonicalContent) {
+    public ChainLink computeNext(AuditEventIngestCommand command) {
         Optional<AuditRecord> previous = auditRecordRepository
-                .findForUpdateLatestByTenantIdAndSourceService(tenantId, sourceService);
+                .findForUpdateLatestByTenantIdAndSourceService(command.getTenantId(), command.getSourceService());
 
         String previousHash = previous.map(AuditRecord::getRecordHash).orElse(null);
-        String toHash = canonicalContent + "|" + (previousHash != null ? previousHash : "GENESIS");
+        String canonicalContent = buildCanonicalContent(
+                command.getTenantId().toString(), command.getSourceService().name(),
+                command.getSourceEventId(), command.getEventType(),
+                command.getOccurredAt().toString(), command.getRawPayload());
 
+        String toHash = canonicalContent + "|" + (previousHash != null ? previousHash : "GENESIS");
         return new ChainLink(sha256(toHash), previousHash);
+    }
+
+    /**
+     * Recomputes what this record's recordHash SHOULD be, purely from its own persisted
+     * fields and its own stored previousRecordHash — then compares against the recordHash
+     * actually stored on the row. A mismatch means either this record's own content or its
+     * previousRecordHash pointer was altered after the fact. This does NOT re-walk the whole
+     * chain back to genesis — see the class-level note below for what that means.
+     */
+    public boolean verify(AuditRecord record) {
+        String canonicalContent = buildCanonicalContent(
+                record.getTenantId().toString(), record.getSourceService().name(),
+                record.getSourceEventId(), record.getEventType(),
+                record.getOccurredAt().toString(), record.getPayload());
+
+        String toHash = canonicalContent + "|" +
+                (record.getPreviousRecordHash() != null ? record.getPreviousRecordHash() : "GENESIS");
+
+        return sha256(toHash).equals(record.getRecordHash());
+    }
+
+    private String buildCanonicalContent(String tenantId, String sourceService, String sourceEventId,
+                                          String eventType, String occurredAt, String rawPayload) {
+        return String.join("|", tenantId, sourceService, sourceEventId, eventType, occurredAt, rawPayload);
     }
 
     private String sha256(String input) {

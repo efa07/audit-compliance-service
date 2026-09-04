@@ -47,9 +47,7 @@ public class AuditRecordServiceImpl implements AuditRecordService {
             return;
         }
 
-        String canonicalContent = buildCanonicalContent(command);
-        AuditHashChainUtil.ChainLink chainLink = hashChainUtil.computeNext(
-                command.getTenantId(), command.getSourceService(), canonicalContent);
+        AuditHashChainUtil.ChainLink chainLink = hashChainUtil.computeNext(command);
 
         AuditRecord record = new AuditRecord();
         record.setTenantId(command.getTenantId());
@@ -138,14 +136,4 @@ public class AuditRecordServiceImpl implements AuditRecordService {
                 .map(auditRecordMapper::toResponse);
     }
 
-    private String buildCanonicalContent(AuditEventIngestCommand command) {
-        return String.join("|",
-                command.getTenantId().toString(),
-                command.getSourceService().name(),
-                command.getSourceEventId(),
-                command.getEventType(),
-                command.getOccurredAt().toString(),
-                command.getRawPayload()
-        );
-    }
 }
