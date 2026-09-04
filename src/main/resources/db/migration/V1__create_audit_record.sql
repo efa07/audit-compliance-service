@@ -1,1 +1,0 @@
--- Audit record migration placeholder.

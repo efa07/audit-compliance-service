@@ -1,1 +1,0 @@
--- Source ingestion status migration placeholder.

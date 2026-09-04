@@ -1,1 +1,0 @@
--- Outbox event migration placeholder.
