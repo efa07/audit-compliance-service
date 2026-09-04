@@ -1,0 +1,23 @@
+CREATE TABLE compliance_violations (
+    id BINARY(16) NOT NULL,
+    tenant_id BINARY(16) NOT NULL,
+    created_at DATETIME(6) NOT NULL,
+    updated_at DATETIME(6),
+    created_by VARCHAR(255) NOT NULL,
+    updated_by VARCHAR(255),
+    audit_record_id BINARY(16) NOT NULL,
+    source_service VARCHAR(255) NOT NULL,
+    type VARCHAR(255) NOT NULL,
+    severity VARCHAR(255) NOT NULL,
+    rule_violated VARCHAR(255) NOT NULL,
+    description VARCHAR(255) NOT NULL,
+    entity_type VARCHAR(255),
+    entity_id VARCHAR(255),
+    actor_id BINARY(16),
+    detected_at DATETIME(6) NOT NULL,
+    PRIMARY KEY (id),
+    INDEX idx_violation_source (tenant_id, source_service, detected_at),
+    INDEX idx_violation_type_severity (tenant_id, type, severity),
+    INDEX idx_violation_entity (tenant_id, entity_type, entity_id),
+    INDEX idx_violation_actor (tenant_id, actor_id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
