@@ -50,13 +50,21 @@ Subscribes to: all nine sibling finance services' relevant routing keys (finance
 
 Idempotency matters more here than elsewhere: a duplicate audit record from redelivery doesn't just waste space, it undermines the record's credibility as evidence. Dedup on eventId/sourceEventId with a real unique constraint, not just application-level best-effort.
 
-6. Database entities — six tables total (updated as the build progressed)
+6. Database entities — seven tables total (updated as the build progressed)
 AuditRecord — core, immutable, hash-chained. One row per ingested event. Fields include sourceService, sourceEventId, eventType, occurredAt, tenantId, correlationId, actorId, entityType, entityId, raw payload (JSON text), recordHash, previousRecordHash, retainUntil.
 ComplianceViolation — unifies "violation" and "exception" via a type/severity field. Immutable, same repository restrictions as AuditRecord.
 ComplianceViolationReview — the deliberate mutable exception: case-management metadata (status, reviewer, resolution notes) for a violation, 1:1 via a unique constraint on violationId. The violation finding itself never changes; the response to it is tracked here instead. Every status change here must itself produce a new AuditRecord (sourceService AUDIT_COMPLIANCE) via AuditRecordService.ingest(...) — this service auditing its own case-management activity, already wired in ComplianceViolationReviewServiceImpl.
 SourceIngestionStatus — one row per (tenantId, sourceService); mutable by design (tracks current health, not history). Backs audit.ingestion.gap.detected.
 OutboxEvent — same transactional-outbox pattern as Budget Management; mutable by design (relay bookkeeping).
 RefOrganizationUnit (in model/refcache/) — cached org structure from Finance Administration, includes parentExternalId for hierarchy (unlike Budget Management's equivalent cache entities, which deferred hierarchy — this service has a concrete, immediate need for it).
+RefTenant (in model/refcache/) — global tenant registry cache, kept current by TenantSyncListener consuming create-tenant-queue/delete-tenant-queue from organization-service (not auth-service — see confirmed contract note below). Deliberately does NOT extend Base — it has no tenantId column, since a row in this table is a tenant definition, not data owned by one. Uses plain AuditingEntityListener only, not BaseEntityListener. Backs ReferenceDataBootstrapRunner's tenant-discovery loop.
+
+Confirmed (not guessed) contract for RefTenant sync, per organization-service's team:
+
+create-tenant-queue carries a flat, envelope-free JSON object: {"tenantId": "<uuid>", "abbreviatedName": "<string>"}. No eventId/occurredAt/correlationId — do not expect or require an envelope on this queue.
+delete-tenant-queue carries a bare UUID string, not JSON at all — e.g. 550e8400-e29b-41d4-a716-446655440000 sent as the raw message body.
+TenantSyncListener's two @RabbitListener methods reflect this exactly: onTenantCreated(TenantEventDto event, ...) lets Spring AMQP's default converter deserialize the flat object directly (no manual JSON parsing needed), and onTenantDeleted(String rawTenantId, ...) takes the raw string directly. Do not reintroduce envelope-parsing logic (objectMapper.readTree(...).path("payload")) on either of these two listener methods — that pattern belongs to every other listener in this service, not these two.
+TenantEventDto (fields: tenantId: UUID, abbreviatedName: String) lives in messaging/listener/ alongside TenantSyncListener, not in dto/eventDto/ — it's organization-service's own DTO shape, copied faithfully, not one of this service's own event contracts.
 
 Deliberately no separate Approval History table. It's a filtered read over AuditRecord (eventType matching %.approved/%.rejected), not a second stored copy of the same fact.
 
@@ -135,7 +143,7 @@ New, specific to this service:
 
 No update/delete methods on AuditRecordRepository or ComplianceViolationRepository, ever — not even ones that happen to be unused. This is stricter than the general "don't add unused methods" guidance; it's a data-integrity rule.
 No REST write endpoints on audit resources — see §4 and §7.
-**This rule applies specifically to `AuditEventListener`'s ingestion path, not the whole service.** Do not deserialize the nine sibling services' business events into typed DTOs for audit-trail recording — `AuditRecord.payload` stays raw JSON, consistent with §5. However, `ReferenceDataSyncService` is a deliberate, narrow exception: it consumes Finance Administration's organization-structure sync events via a separate, dedicated listener (`OrganizationStructureSyncListener`, mirroring Budget Management's `FinanceAdminEventListener` pattern) and DOES deserialize into a typed `OrganizationUnitSyncEvent` DTO, because the `RefOrganizationUnit` cache needs real, queryable fields (`code`, `name`, `parentExternalId`), not a JSON blob. If a task involves audit-trail ingestion, raw JSON is correct. If a task involves the `RefOrganizationUnit` reference cache specifically, a typed inbound DTO is correct. Don't apply one rule where the other belongs.
+Do not deserialize inbound events from other services into typed business DTOs. Capture payload as raw JSON on AuditRecord, consistent with the deliberate architecture decision in §5. If a task seems to want a FiscalYearSyncEvent-style typed inbound DTO the way Budget Management uses, that's the wrong pattern for this service — flag it.
 Every write to AuditRecord must compute and store recordHash/previousRecordHash as part of the same write — never insert a record without chain fields populated. The chain is scoped per (tenantId, sourceService); when computing previousRecordHash, query the latest record for that same (tenantId, sourceService) pair, not the latest record overall.
 Retention (retainUntil) must be set on every AuditRecord at creation time — creation timestamp + 10 years — not left null or computed lazily later.
 How to use this context
