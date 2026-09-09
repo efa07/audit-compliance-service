@@ -25,7 +25,7 @@ public class OpenApiConfig {
         @Value("${server.port:9192}")
         private String serverPort;
 
-        @Value("${spring.application.name:budget-management-service}")
+        @Value("${spring.application.name:audit-compliance-service}")
         private String applicationName;
 
         @Bean
