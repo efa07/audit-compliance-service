@@ -11,9 +11,9 @@
     </parent>
 
     <groupId>com.saas</groupId>
-    <artifactId>budget-managment-service</artifactId>
+    <artifactId>audit-compliance-service</artifactId>
     <version>0.0.1-SNAPSHOT</version>
-    <name>budget-managment-service</name>
+    <name>audit-compliance-service</name>
     <description>ERP SaaS Application</description>
 
     <properties>
